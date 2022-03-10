@@ -16,6 +16,7 @@ import getModuleDependencies from './lib/getModuleDependencies'
 import log from './util/log'
 import packageJson from '../package.json'
 import normalizePath from 'normalize-path'
+import { debounce } from 'lodash';
 
 let env = {
   DEBUG: process.env.DEBUG !== undefined && process.env.DEBUG !== '0',
@@ -750,6 +751,7 @@ async function build() {
       return result
     }
 
+    let debouncedRebuild = debounce(rebuild, 50)
     let config = refreshConfig(configPath)
 
     if (input) {
@@ -785,7 +787,7 @@ async function build() {
 
         chain = chain.then(async () => {
           changedContent.push(...getChangedContent(config))
-          await rebuild(config)
+          await debouncedRebuild(config)
         })
       } else {
         chain = chain.then(async () => {
@@ -794,7 +796,7 @@ async function build() {
             extension: path.extname(file).slice(1),
           })
 
-          await rebuild(config)
+          await debouncedRebuild(config)
         })
       }
     })
@@ -806,13 +808,13 @@ async function build() {
           extension: path.extname(file).slice(1),
         })
 
-        await rebuild(config)
+        await debouncedRebuild(config)
       })
     })
 
     chain = chain.then(() => {
       changedContent.push(...getChangedContent(config))
-      return rebuild(config)
+      return debouncedRebuild(config)
     })
   }
 
